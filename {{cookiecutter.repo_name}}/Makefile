@@ -1,17 +1,21 @@
-.PHONY: help clean clean-pyc clean-build list test test-all coverage docs release sdist
+.PHONY: help clean clean-pyc clean-build clean-test clean-docs lint test \
+        test-all coverage docs release dist
 
 help:
+	@echo "clean - remove all build, doc, test, coverage and Python artifacts"
 	@echo "clean-build - remove build artifacts"
 	@echo "clean-pyc - remove Python file artifacts"
+	@echo "clean-test - remove test and coverage artifacts"
+	@echo "clean-doc - remove documentation artifacts"
 	@echo "lint - check style with flake8"
 	@echo "test - run tests quickly with the default Python"
-	@echo "testall - run tests on every Python version with tox"
+	@echo "test-all - run tests on every Python version with tox"
 	@echo "coverage - check code coverage quickly with the default Python"
 	@echo "docs - generate Sphinx HTML documentation, including API docs"
 	@echo "release - package and upload a release"
 	@echo "sdist - package"
 
-clean: clean-build clean-pyc
+clean: clean-build clean-pyc clean-test clean-docs
 
 clean-build:
 	rm -fr build/
@@ -22,29 +26,36 @@ clean-pyc:
 	find . -name '*.pyc' -exec rm -f {} +
 	find . -name '*.pyo' -exec rm -f {} +
 	find . -name '*~' -exec rm -f {} +
+	find . -name '__pycache__' -exec rm -fr {} +
+
+clean-test:
+	rm -fr .tox/
+	rm -f .coverage
+	rm -fr htmlcov/
+	rm -fr .cache/
+
+clean-docs:
+	$(MAKE) -C docs clean
 
 lint:
 	flake8 {{ cookiecutter.repo_name }} test
 
-test:
-	py.test
+test: clean-pyc clean-test
+	python setup.py test
 
-test-all:
+test-all: clean-pyc
 	tox
 
-coverage:
+coverage: clean-pyc
 	coverage run --source {{ cookiecutter.repo_name }} setup.py test
 	coverage report -m
 	coverage html
-	open htmlcov/index.html
+	xdg-open htmlcov/index.html
 
 docs:
-	rm -f docs/{{ cookiecutter.repo_name }}.rst
-	rm -f docs/modules.rst
-	sphinx-apidoc -o docs/ {{ cookiecutter.repo_name }}
 	$(MAKE) -C docs clean
 	$(MAKE) -C docs html
-	open docs/_build/html/index.html
+	xdg-open docs/_build/html/index.html
 
 release: clean
 	python setup.py sdist upload
@@ -52,5 +63,5 @@ release: clean
 
 sdist: clean
 	python setup.py sdist
-	python setup.py bdist_wheel upload
+	python setup.py bdist_wheel
 	ls -l dist
